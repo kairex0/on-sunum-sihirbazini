@@ -2,15 +2,15 @@ import streamlit as st
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
+from fpdf import FPDF
 import io
 
 # -------------------------------------------------------------
-# DİNAMİK RENK VE TASARIMLI POWERPOINT MOTORU
+# 1. POWERPOINT MOTORU
 # -------------------------------------------------------------
 def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim):
     prs = Presentation()
     
-    # TEMALARA GÖRE RENK SEÇİM MOTORU
     if sablon_turu == "ON Premium (Gold & Lacivert)":
         ANA_RENK = RGBColor(11, 29, 58)      
         VURGU_RENK = RGBColor(212, 175, 55)   
@@ -45,7 +45,7 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     p3.text = f"\nHazırlayan: {danisman} | ON Türkiye"
     p3.font.size = Pt(14); p3.font.color.rgb = VURGU_RENK
 
-    # SLAYT 2: PORTFÖY ÖZELLİKLERİ VE FOTOĞRAF
+    # SLAYT 2: PORTFÖY ÖZELLİKLERİ
     slide2 = prs.slides.add_slide(prs.slide_layouts[6])
     t_box = slide2.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(9), Inches(1))
     t_box.text_frame.paragraphs[0].text = "PORTFÖY ÖZELLİKLERİ VE DETAYLAR"
@@ -63,7 +63,7 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
         p_m = tf2.add_paragraph(); p_m.text = m; p_m.font.size = Pt(16); p_m.font.color.rgb = METIN_KOYU; p_m.space_after = Pt(12)
         
     if yuklenen_resim is not None:
-        image_stream = io.BytesIO(yuklenen_resim.read())
+        image_stream = io.BytesIO(yuklenen_resim.getvalue())
         slide2.shapes.add_picture(image_stream, Inches(5.8), Inches(1.5), width=Inches(3.8))
 
     # SLAYT 3: MALİYET MOTORU
@@ -80,109 +80,124 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     toplam_maliyet = arsa_fiyati + insaat_maliyeti
     tahmini_bitis_degeri = toplam_maliyet * 1.6
     
-    if konsept == "Premium Taş Ev":
-        yorum = "💡 Bölgenin doğal dokusuna uygun taş mimari, eskidikçe değer kazanan en yüksek prim potansiyeline sahiptir."
-    elif konsept == "Eko-Tiny House Yaşam Alanı":
-        yorum = "💡 Altyapı hazır olduğu için inşaat stresi olmadan hemen yarın kurulabilir, lüks ve mobil bir kaçış noktasıdır."
-    else:
-        yorum = "💡 Bölgedeki turizm ve villa talebini nakde çevirecek, kısa/uzun dönem yüksek kira getirili yatırım senaryosudur."
-
-    finansallar = [
-        yorum,
-        f"🏗️ Planlanan İnşaat Alanı: {toplam_insaat} m² (Taban: {taban_alan} m²)",
-        f"💵 Arsa Bedeli: {arsa_fiyati:,.0f} TL".replace(",", "."),
-        f"🔨 Tahmini Yapım Maliyeti: {insaat_maliyeti:,.0f} TL".replace(",", "."),
-        f"📊 Toplam Yatırım Bütçesi: {toplam_maliyet:,.0f} TL".replace(",", "."),
-        f"📈 Tamamlandığında Tahmini Piyasa Değeri: {tahmini_bitis_degeri:,.0f} TL".replace(",", ".")
-    ]
-    for f in finansallar:
-        p_f = tf3.add_paragraph(); p_f.text = f; p_f.font.size = Pt(16); p_f.font.color.rgb = METIN_KOYU; p_f.space_after = Pt(10)
-
     binary_output = io.BytesIO()
     prs.save(binary_output)
     binary_output.seek(0)
     return binary_output
 
+# -------------------------------------------------------------
+# 2. DİNAMİK PDF ÜRETME MOTORU
+# -------------------------------------------------------------
+def pdf_rapor_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # PDF standart fontu (Türkçe karakter uyumu için Helvetica/Arial)
+    pdf.set_font("Arial", "B", 24)
+    
+    # Başlık ve Kurumsal Çizgiler
+    pdf.set_text_color(11, 29, 58) # ON Türkiye Laciverti
+    pdf.cell(0, 15, "ON TURKIYE GAYRIMENKUL", ln=True, align="C")
+    pdf.set_font("Arial", "", 14)
+    pdf.cell(0, 10, "YATIRIM VE PROJE ANALIZ RAPORU", ln=True, align="C")
+    pdf.line(10, 40, 200, 40)
+    pdf.ln(15)
+    
+    # Detaylar
+    pdf.set_font("Arial", "B", 16)
+    pdf.set_text_color(241, 90, 36) # Turuncu
+    pdf.cell(0, 10, f"PORTFOY: IZMIR {ilce.upper()} - {mahalle.upper()}", ln=True)
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "", 12)
+    pdf.set_text_color(50, 50, 50)
+    
+    fiyat_str = f"{arsa_fiyati:,.0f} TL".replace(",", ".")
+    taban_alan = int(int(m2) * 0.15)
+    toplam_insaat = taban_alan * 2
+    insaat_maliyeti = toplam_insaat * 30000
+    toplam_maliyet = arsa_fiyati + insaat_maliyeti
+    tahmini_bitis_degeri = toplam_maliyet * 1.6
+    
+    pdf.cell(0, 8, f"- Toplam Arazi Alani: {m2} m2", ln=True)
+    pdf.cell(0, 8, f"- Imar Durumu: {imar}", ln=True)
+    pdf.cell(0, 8, f"- Onerilen Proje Konsepti: {konsept}", ln=True)
+    pdf.cell(0, 8, f"- Arsa Alim Bedeli: {fiyat_str}", ln=True)
+    pdf.ln(10)
+    
+    # Finansal Analiz Tablosu gibi Başlık
+    pdf.set_font("Arial", "B", 14)
+    pdf.set_text_color(11, 29, 58)
+    pdf.cell(0, 10, "PROJEKSIYON VE MALIYET TABLOSU", ln=True)
+    pdf.set_font("Arial", "", 12)
+    
+    pdf.cell(0, 8, f"- Planlanan Insaat Alani: {toplam_insaat} m2", ln=True)
+    pdf.cell(0, 8, f"- Tahmini Yapim Maliyeti: {insaat_maliyeti:,.0f} TL".replace(",", "."), ln=True)
+    pdf.cell(0, 8, f"- Toplam Yatirim Butcesi (Arsa + Insaat): {toplam_maliyet:,.0f} TL".replace(",", "."), ln=True)
+    pdf.cell(0, 8, f"- Proje Bitisindeki Tahmini Deger: {tahmini_bitis_degeri:,.0f} TL".replace(",", "."), ln=True)
+    
+    pdf.ln(20)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
+    pdf.set_font("Arial", "I", 10)
+    pdf.cell(0, 10, f"Raporu Hazirlayan: {danisman} - ON Turkiye", align="R")
+    
+    # PDF'i hafızaya kaydet
+    pdf_output = io.BytesIO()
+    pdf.output(dest="S").encode('latin1', errors='ignore') # Geçici düzeltme
+    
+    # Temiz byte çıktısı için fpdf2 buffer kullanımı
+    return bytes(pdf.output())
 
 # -------------------------------------------------------------
-# DİNAMİK İLAN METNİ ÜRETME MOTORU
+# 3. DİNAMİK İLAN METNİ MOTORU
 # -------------------------------------------------------------
 def ilan_metni_uret(ilce, mahalle, m2, imar, arsa_fiyati, konsept, danisman):
     fiyat_str = f"{arsa_fiyati:,.0f} TL".replace(",", ".")
-    
-    metin = f"""🚀 ON TÜRKİYE'DEN İZMİR {ilce.upper()} {mahalle.upper()}'DE KAÇIRILMAYACAK YATIRIM FIRSATI!
-
-✨ Portföy Özellikleri:
-• Konum: İzmir / {ilce} / {mahalle}
-• Genişlik: {m2} m² 
-• İmar Durumu: {imar}
-• Altyapı: Elektrik ve su hatları hazır, hemen inşaata uygun durumda!
-
-🎯 Proje Geliştirme Senaryosu:
-Arazimiz, konumu ve yasal altyapısı itibariyle özellikle "{konsept}" konsepti için kusursuz bir yapıya sahiptir. Bölgedeki emlak endeksi ve yüksek prim potansiyeli göz önüne alındığında, hem bireysel kullanım hem de yüksek kazanç odaklı kurumsal projeler için kaçırılamayacak bir fırsattır.
-
-💵 Fırsat Alım Bedeli: {fiyat_str}
-
-Detaylı bilgi, yerinde sunum ve profesyonel yatırım analiz raporu için benimle hemen iletişime geçebilirsiniz.
-
-Yatırım Danışmanı: {danisman}
-🏢 ON TÜRKİYE GAYRİMENKUL
-"""
+    metin = f"""🚀 ON TÜRKİYE'DEN İZMİR {ilce.upper()} {mahalle.upper()}'DE KAÇIRILMAYACAK YATIRIM FIRSATI!\n\n✨ Portföy Özellikleri:\n• Konum: İzmir / {ilce} / {mahalle}\n• Genişlik: {m2} m²\n• İmar Durumu: {imar}\n• Altyapı: Elektrik ve su hazır!\n\n🎯 Önerilen Proje: {konsept}\n💵 Fırsat Alım Bedeli: {fiyat_str}\n\nYatırım Danışmanı: {danisman}\n🏢 ON TÜRKİYE GAYRİMENKUL"""
     return metin
-
 
 # -------------------------------------------------------------
 # STREAMLIT ARAYÜZÜ
 # -------------------------------------------------------------
-st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v4", page_icon="🏢", layout="centered")
+st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v5", page_icon="🏢", layout="centered")
 
-st.title("🏢 ON Türkiye Sunum Sihirbazı v4")
-st.write("Bilgileri girin; hem kurumsal sunumunuzu indirin hem de ilan metninizi tek tıkla kopyalayın!")
+st.title("🏢 ON Türkiye Sunum Sihirbazı v5")
+st.write("Bilgileri girin; sunum indirin, PDF raporu basın ve ilan metni üretin!")
 st.divider()
 
 col1, col2 = st.columns(2)
-
 with col1:
     ilce = st.text_input("İlçe Name", value="Urla")
     m2 = st.number_input("Metrekare (m²)", min_value=1, value=500)
     danisman = st.text_input("Danışman Adı Soyadı", value="Fatih Türkdönmez")
-
 with col2:
     mahalle = st.text_input("Mahalle / Köy", value="Kuşçular")
     imar = st.text_input("İmar Durumu", value="%15/30 Konut İmarlı")
     arsa_fiyati = st.number_input("Arsa Fiyatı (TL)", min_value=0, value=6500000, step=50000)
 
 st.divider()
-
 sablon_turu = st.selectbox("Sunum Şablonu Tasarımı (Renk Modu)", ["ON Premium (Gold & Lacivert)", "ON Nature (Doğa & Toprak)", "ON Commercial (Modern & Antrasit)"])
 konsept = st.selectbox("Önerilecek Proje Konsepti", ["Premium Taş Ev", "Eko-Tiny House Yaşam Alanı", "Yüksek Getirili Villa"])
 yuklenen_resim = st.file_uploader("Arsa / Drone Fotoğrafı Yükleyin (Opsiyonel)", type=["jpg", "jpeg", "png"])
-
 st.divider()
 
-# İKİ AYRI AKSİYON BUTONU
-btn_col1, btn_col2 = st.columns(2)
+# ÜÇ AYRI AKSİYON BUTONU
+btn_col1, btn_col2, btn_col3 = st.columns(3)
 
 with btn_col1:
-    if st.button("🚀 Profesyonel Sunum Dosyasını Hazırla", use_container_width=True):
-        with st.spinner("Sunum hazırlanıyor..."):
-            sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim)
-            st.success("🎉 Sunum başarıyla hazırlandı!")
-            st.download_button(
-                label="📥 PowerPoint Dosyasını İndir",
-                data=sunum_dosyasi,
-                file_name=f"ON_Turkiye_{ilce}_Sunumu.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                use_container_width=True
-            )
+    if st.button("🚀 PPTX Sunumu Üret", use_container_width=True):
+        sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim)
+        st.download_button(label="📥 PowerPoint İndir", data=sunum_dosyasi, file_name=f"ON_{ilce}_Sunum.pptx", mime="application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
 with btn_col2:
-    if st.button("✍️ Hazır İlan Açıklama Metni Üret", use_container_width=True):
-        hazir_metin = ilan_metni_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, konsept, danisman)
-        st.session_state["ilan_metni"] = hazir_metin
-        st.success("📝 İlan metni aşağıda başarıyla oluşturuldu!")
+    if st.button("📄 Yatırım PDF Raporu Bas", use_container_width=True):
+        pdf_dosyasi = pdf_rapor_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, danisman, konsept)
+        st.download_button(label="📥 PDF Raporunu İndir", data=pdf_dosyasi, file_name=f"ON_{ilce}_Yatirim_Raporu.pdf", mime="application/pdf", use_container_width=True)
 
-# Eğer ilan metni üretildiyse ekranda şık bir kutuda gösterelim
+with btn_col3:
+    if st.button("✍️ İlan Metni Üret", use_container_width=True):
+        st.session_state["ilan_metni"] = ilan_metni_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, konsept, danisman)
+
 if "ilan_metni" in st.session_state:
-    st.info("👇 Sahibinden.com veya Sosyal Medya ilanlarında kullanabileceğiniz hazır açıklama metni:")
-    st.text_area(label="Kopyalamak için içine tıklayıp Ctrl+A / Ctrl+C yapabilirsiniz:", value=st.session_state["ilan_metni"], height=300)
+    st.text_area(label="Hazır İlan Açıklaması:", value=st.session_state["ilan_metni"], height=200)
