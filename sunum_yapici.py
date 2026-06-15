@@ -6,7 +6,16 @@ from fpdf import FPDF
 import io
 
 # -------------------------------------------------------------
-# 1. POWERPOINT MOTORU
+# TÜRKÇE KARAKTER TEMİZLEME FONKSİYONU (PDF İÇİN KORUMA)
+# -------------------------------------------------------------
+def turkce_temizle(metin):
+    kaynak = "şŞıİğĞüÜöÖçÇ"
+    hedef  = "sSiiGGuuooCC"
+    tablo = str.maketrans(kaynak, hedef)
+    return metin.translate(tablo)
+
+# -------------------------------------------------------------
+# 1. POWERPOINT MOTORU (PPTX Türkçe karakter destekler, buraya dokunmuyoruz)
 # -------------------------------------------------------------
 def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim):
     prs = Presentation()
@@ -80,36 +89,53 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     toplam_maliyet = arsa_fiyati + insaat_maliyeti
     tahmini_bitis_degeri = toplam_maliyet * 1.6
     
+    if konsept == "Premium Taş Ev":
+        yorum = "💡 Bölgenin doğal dokusuna uygun taş mimari, eskidikçe değer kazanan en yüksek prim potansiyeline sahiptir."
+    elif konsept == "Eko-Tiny House Yaşam Alanı":
+        yorum = "💡 Altyapı hazır olduğu için inşaat stresi olmadan hemen yarın kurulabilir, lüks ve mobil bir kaçış noktasıdır."
+    else:
+        yorum = "💡 Bölgedeki turizm ve villa talebini nakde çevirecek, kısa/uzun dönem yüksek kira getirili yatırım senaryosudur."
+
+    finansallar = [
+        yorum,
+        f"🏗️ Planlanan İnşaat Alanı: {toplam_insaat} m² (Taban: {taban_alan} m²)",
+        f"💵 Arsa Bedeli: {arsa_fiyati:,.0f} TL".replace(",", "."),
+        f"🔨 Tahmini Yapım Maliyeti: {insaat_maliyeti:,.0f} TL".replace(",", "."),
+        f"📊 Toplam Yatırım Bütçesi: {toplam_maliyet:,.0f} TL".replace(",", "."),
+        f"📈 Tamamlandığında Tahmini Piyasa Değeri: {tahmini_bitis_degeri:,.0f} TL".replace(",", ".")
+    ]
+    for f in finansallar:
+        p_f = tf3.add_paragraph(); p_f.text = f; p_f.font.size = Pt(16); p_f.font.color.rgb = METIN_KOYU; p_f.space_after = Pt(10)
+
     binary_output = io.BytesIO()
     prs.save(binary_output)
     binary_output.seek(0)
     return binary_output
 
 # -------------------------------------------------------------
-# 2. DİNAMİK PDF ÜRETME MOTORU
+# 2. GÜVENLİ PDF ÜRETME MOTORU (Türkçe Karakter Korumalı)
 # -------------------------------------------------------------
 def pdf_rapor_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept):
     pdf = FPDF()
     pdf.add_page()
     
-    # PDF standart fontu (Türkçe karakter uyumu için Helvetica/Arial)
-    pdf.set_font("Arial", "B", 24)
+    pdf.set_font("Courier", "B", 20) # Standart ve güvenli fonta çektik kanka
+    pdf.set_text_color(11, 29, 58) 
+    pdf.cell(0, 15, turkce_temizle("ON TURKIYE GAYRIMENKUL"), ln=True, align="C")
     
-    # Başlık ve Kurumsal Çizgiler
-    pdf.set_text_color(11, 29, 58) # ON Türkiye Laciverti
-    pdf.cell(0, 15, "ON TURKIYE GAYRIMENKUL", ln=True, align="C")
-    pdf.set_font("Arial", "", 14)
-    pdf.cell(0, 10, "YATIRIM VE PROJE ANALIZ RAPORU", ln=True, align="C")
+    pdf.set_font("Courier", "", 12)
+    pdf.cell(0, 10, turkce_temizle("YATIRIM VE PROJE ANALIZ RAPORU"), ln=True, align="C")
     pdf.line(10, 40, 200, 40)
-    pdf.ln(15)
+    pdf.ln(10)
     
     # Detaylar
-    pdf.set_font("Arial", "B", 16)
-    pdf.set_text_color(241, 90, 36) # Turuncu
-    pdf.cell(0, 10, f"PORTFOY: IZMIR {ilce.upper()} - {mahalle.upper()}", ln=True)
+    pdf.set_font("Courier", "B", 14)
+    pdf.set_text_color(241, 90, 36) 
+    portfoy_baslik = f"PORTFOY: IZMIR {ilce.upper()} - {mahalle.upper()}"
+    pdf.cell(0, 10, turkce_temizle(portfoy_baslik), ln=True)
     pdf.ln(5)
     
-    pdf.set_font("Arial", "", 12)
+    pdf.set_font("Courier", "", 11)
     pdf.set_text_color(50, 50, 50)
     
     fiyat_str = f"{arsa_fiyati:,.0f} TL".replace(",", ".")
@@ -119,34 +145,29 @@ def pdf_rapor_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept):
     toplam_maliyet = arsa_fiyati + insaat_maliyeti
     tahmini_bitis_degeri = toplam_maliyet * 1.6
     
-    pdf.cell(0, 8, f"- Toplam Arazi Alani: {m2} m2", ln=True)
-    pdf.cell(0, 8, f"- Imar Durumu: {imar}", ln=True)
-    pdf.cell(0, 8, f"- Onerilen Proje Konsepti: {konsept}", ln=True)
-    pdf.cell(0, 8, f"- Arsa Alim Bedeli: {fiyat_str}", ln=True)
-    pdf.ln(10)
+    pdf.cell(0, 8, turkce_temizle(f"- Toplam Arazi Alani: {m2} m2"), ln=True)
+    pdf.cell(0, 8, turkce_temizle(f"- Imar Durumu: {imar}"), ln=True)
+    pdf.cell(0, 8, turkce_temizle(f"- Onerilen Proje Konsepti: {konsept}"), ln=True)
+    pdf.cell(0, 8, turkce_temizle(f"- Arsa Alim Bedeli: {fiyat_str}"), ln=True)
+    pdf.ln(5)
     
-    # Finansal Analiz Tablosu gibi Başlık
-    pdf.set_font("Arial", "B", 14)
+    pdf.set_font("Courier", "B", 13)
     pdf.set_text_color(11, 29, 58)
-    pdf.cell(0, 10, "PROJEKSIYON VE MALIYET TABLOSU", ln=True)
-    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 10, turkce_temizle("PROJEKSIYON VE MALIYET TABLOSU"), ln=True)
+    pdf.set_font("Courier", "", 11)
     
-    pdf.cell(0, 8, f"- Planlanan Insaat Alani: {toplam_insaat} m2", ln=True)
-    pdf.cell(0, 8, f"- Tahmini Yapim Maliyeti: {insaat_maliyeti:,.0f} TL".replace(",", "."), ln=True)
-    pdf.cell(0, 8, f"- Toplam Yatirim Butcesi (Arsa + Insaat): {toplam_maliyet:,.0f} TL".replace(",", "."), ln=True)
-    pdf.cell(0, 8, f"- Proje Bitisindeki Tahmini Deger: {tahmini_bitis_degeri:,.0f} TL".replace(",", "."), ln=True)
+    pdf.cell(0, 8, turkce_temizle(f"- Planlanan Insaat Alani: {toplam_insaat} m2"), ln=True)
+    pdf.cell(0, 8, turkce_temizle(f"- Tahmini Yapim Maliyeti: {insaat_maliyeti:,.0f} TL".replace(",", ".")), ln=True)
+    pdf.cell(0, 8, turkce_temizle(f"- Toplam Yatirim Butcesi (Arsa+Insaat): {toplam_maliyet:,.0f} TL".replace(",", ".")), ln=True)
+    pdf.cell(0, 8, turkce_temizle(f"- Proje Bitisindeki Tahmini Deger: {tahmini_bitis_degeri:,.0f} TL".replace(",", ".")), ln=True)
     
-    pdf.ln(20)
+    pdf.ln(15)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
-    pdf.set_font("Arial", "I", 10)
-    pdf.cell(0, 10, f"Raporu Hazirlayan: {danisman} - ON Turkiye", align="R")
+    pdf.set_font("Courier", "I", 10)
+    rapor_hazirlayan = f"Raporu Hazirlayan: {danisman} - ON Turkiye"
+    pdf.cell(0, 10, turkce_temizle(rapor_hazirlayan), align="R")
     
-    # PDF'i hafızaya kaydet
-    pdf_output = io.BytesIO()
-    pdf.output(dest="S").encode('latin1', errors='ignore') # Geçici düzeltme
-    
-    # Temiz byte çıktısı için fpdf2 buffer kullanımı
     return bytes(pdf.output())
 
 # -------------------------------------------------------------
@@ -154,7 +175,7 @@ def pdf_rapor_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept):
 # -------------------------------------------------------------
 def ilan_metni_uret(ilce, mahalle, m2, imar, arsa_fiyati, konsept, danisman):
     fiyat_str = f"{arsa_fiyati:,.0f} TL".replace(",", ".")
-    metin = f"""🚀 ON TÜRKİYE'DEN İZMİR {ilce.upper()} {mahalle.upper()}'DE KAÇIRILMAYACAK YATIRIM FIRSATI!\n\n✨ Portföy Özellikleri:\n• Konum: İzmir / {ilce} / {mahalle}\n• Genişlik: {m2} m²\n• İmar Durumu: {imar}\n• Altyapı: Elektrik ve su hazır!\n\n🎯 Önerilen Proje: {konsept}\n💵 Fırsat Alım Bedeli: {fiyat_str}\n\nYatırım Danışmanı: {danisman}\n🏢 ON TÜRKİYE GAYRİMENKUL"""
+    metin = f"""🚀 ON TÜRKİYE'DEN İZMİR {ilce.upper()} {mahalle.upper()}'DE KAÇIRILMAYACAK YATIRIM FIRSATI!\n\n✨ Portföy Özellikleri:\n• Konum: İzmir / {ilce} / {mahalle}\n• Genişlik: {m2} m²\n• İmar Durumu: {imar}\n• Altyapı: Elektrik ve su hazır!\n\n🎯 Önerilen Proje: {konsept}\n💵 Fırsat Alım Bedeli: {fiyat_str}\n\nYatırım Danışmanı: {danisman}\n🏢 ON TÜRKİYE GAYRİメンKUL"""
     return metin
 
 # -------------------------------------------------------------
@@ -182,7 +203,6 @@ konsept = st.selectbox("Önerilecek Proje Konsepti", ["Premium Taş Ev", "Eko-Ti
 yuklenen_resim = st.file_uploader("Arsa / Drone Fotoğrafı Yükleyin (Opsiyonel)", type=["jpg", "jpeg", "png"])
 st.divider()
 
-# ÜÇ AYRI AKSİYON BUTONU
 btn_col1, btn_col2, btn_col3 = st.columns(3)
 
 with btn_col1:
