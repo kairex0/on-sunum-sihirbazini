@@ -10,13 +10,13 @@ import io
 # TÜRKÇE KARAKTER TEMİZLEME FONKSİYONU
 # -------------------------------------------------------------
 def turkce_temizle(metin):
-    kaynak = "şŞıİğĞüÜöÖçÇ"
-    hedef  = "sSiiGGuuooCC"
+    kaynak = "şŞıİğĞüÜöÖçÇ "
+    hedef  = "sSiiGGuuooCC_" # Boşlukları da alt tire yapıyoruz ki dosya adında şık dursun
     tablo = str.maketrans(kaynak, hedef)
     return metin.translate(tablo)
 
 # -------------------------------------------------------------
-# 1. GELİŞMİŞ POWERPOINT MOTORU (GRAFİK DESTEKLİ)
+# 1. POWERPOINT MOTORU
 # -------------------------------------------------------------
 def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim):
     prs = Presentation()
@@ -103,7 +103,6 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     for f in finansallar:
         p_f = tf3.add_paragraph(); p_f.text = f; p_f.font.size = Pt(15); p_f.font.color.rgb = METIN_KOYU; p_f.space_after = Pt(12)
 
-    # 📊 ARKA PLANDA PASTA GRAFİĞİ ÜRETMEK
     labels = ['Arsa Bedeli', 'Insaat Maliyeti']
     sizes = [arsa_fiyati, insaat_maliyeti]
     
@@ -111,7 +110,6 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=GRAFIK_RENKLER, textprops={'fontsize': 12, 'weight': 'bold'})
     ax.axis('equal')  
     
-    # Grafiği hafızaya kaydet ve Slayt 3'e yapıştır kanka
     chart_stream = io.BytesIO()
     plt.savefig(chart_stream, format='png', bbox_inches='tight', transparent=True)
     chart_stream.seek(0)
@@ -195,7 +193,7 @@ def ilan_metni_uret(ilce, mahalle, m2, imar, arsa_fiyati, konsept, danisman):
 st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v6", page_icon="🏢", layout="centered")
 
 st.title("🏢 ON Türkiye Sunum Sihirbazı v6")
-st.write("Bilgileri girin; grafik destekli kurumsal sunum, PDF ve ilan metnini anında üretin!")
+st.write("Bilgileri girin; dinamik dosya ismiyle raporlarınızı indirin!")
 st.divider()
 
 col1, col2 = st.columns(2)
@@ -214,17 +212,25 @@ konsept = st.selectbox("Önerilecek Proje Konsepti", ["Premium Taş Ev", "Eko-Ti
 yuklenen_resim = st.file_uploader("Arsa / Drone Fotoğrafı Yükleyin (Opsiyonel)", type=["jpg", "jpeg", "png"])
 st.divider()
 
+# 🏷️ DİNAMİK DOSYA İSMİ GENERATORU
+temiz_ilce = turkce_temizle(ilce.lower())
+temiz_mahalle = turkce_temizle(mahalle.lower())
+temiz_konsept = turkce_temizle(konsept.lower())
+
+pptx_dosya_adi = f"ON_{temiz_ilce}_{temiz_mahalle}_{temiz_konsept}_sunumu.pptx"
+pdf_dosya_adi = f"ON_{temiz_ilce}_{temiz_mahalle}_{temiz_konsept}_analiz_raporu.pdf"
+
 btn_col1, btn_col2, btn_col3 = st.columns(3)
 
 with btn_col1:
     if st.button("🚀 PPTX Sunumu Üret", use_container_width=True):
         sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept, sablon_turu, yuklenen_resim)
-        st.download_button(label="📥 PowerPoint İndir", data=sunum_dosyasi, file_name=f"ON_{ilce}_Sunum.pptx", mime="application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+        st.download_button(label="📥 PowerPoint İndir", data=sunum_dosyasi, file_name=pptx_dosya_adi, mime="application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
 with btn_col2:
     if st.button("📄 Yatırım PDF Raporu Bas", use_container_width=True):
         pdf_dosyasi = pdf_rapor_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept)
-        st.download_button(label="📥 PDF Raporunu İndir", data=pdf_dosyasi, file_name=f"ON_{ilce}_Yatirim_Raporu.pdf", mime="application/pdf", use_container_width=True)
+        st.download_button(label="📥 PDF Raporunu İndir", data=pdf_dosyasi, file_name=pdf_dosya_adi, mime="application/pdf", use_container_width=True)
 
 with btn_col3:
     if st.button("✍️ İlan Metni Üret", use_container_width=True):
