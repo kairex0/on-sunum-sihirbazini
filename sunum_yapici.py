@@ -10,23 +10,23 @@ import io
 def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim):
     prs = Presentation()
     
-    # 🎨 TEMALARA GÖRE RENK SEÇİM MOTORU
+    # TEMALARA GÖRE RENK SEÇİM MOTORU
     if sablon_turu == "ON Premium (Gold & Lacivert)":
-        ANA_RENK = RGBColor(11, 29, 58)      # Koyu Lacivert
-        VURGU_RENK = RGBColor(212, 175, 55)   # Altın Sarısı (Premium)
+        ANA_RENK = RGBColor(11, 29, 58)      
+        VURGU_RENK = RGBColor(212, 175, 55)   
         METIN_KOYU = RGBColor(40, 45, 55)
     elif sablon_turu == "ON Nature (Doğa & Toprak)":
-        ANA_RENK = RGBColor(34, 76, 56)       # Orman Yeşili
-        VURGU_RENK = RGBColor(194, 143, 83)   # Toprak/Ahşap Tonu
+        ANA_RENK = RGBColor(34, 76, 56)       
+        VURGU_RENK = RGBColor(194, 143, 83)   
         METIN_KOYU = RGBColor(50, 60, 50)
-    else: # ON Commercial (Modern & Dinamik)
-        ANA_RENK = RGBColor(43, 43, 43)       # Antrasit / Gri
-        VURGU_RENK = RGBColor(241, 90, 36)    # Canlı Turuncu
+    else: 
+        ANA_RENK = RGBColor(43, 43, 43)       
+        VURGU_RENK = RGBColor(241, 90, 36)    
         METIN_KOYU = RGBColor(30, 30, 30)
         
     BEYAZ = RGBColor(255, 255, 255)
     
-    # SLAYT 1: KAPAK (Seçilen temanın ana rengi arka plan olur)
+    # SLAYT 1: KAPAK
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     bg = slide.shapes.add_shape(1, 0, 0, prs.slide_width, prs.slide_height)
     bg.fill.solid(); bg.fill.fore_color.rgb = ANA_RENK; bg.line.fill.background()
@@ -47,7 +47,6 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
 
     # SLAYT 2: PORTFÖY ÖZELLİKLERİ VE FOTOĞRAF
     slide2 = prs.slides.add_slide(prs.slide_layouts[6])
-    
     t_box = slide2.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(9), Inches(1))
     t_box.text_frame.paragraphs[0].text = "PORTFÖY ÖZELLİKLERİ VE DETAYLAR"
     t_box.text_frame.paragraphs[0].font.size = Pt(26); t_box.text_frame.paragraphs[0].font.bold = True; t_box.text_frame.paragraphs[0].font.color.rgb = ANA_RENK
@@ -104,13 +103,41 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     binary_output.seek(0)
     return binary_output
 
+
+# -------------------------------------------------------------
+# DİNAMİK İLAN METNİ ÜRETME MOTORU
+# -------------------------------------------------------------
+def ilan_metni_uret(ilce, mahalle, m2, imar, arsa_fiyati, konsept, danisman):
+    fiyat_str = f"{arsa_fiyati:,.0f} TL".replace(",", ".")
+    
+    metin = f"""🚀 ON TÜRKİYE'DEN İZMİR {ilce.upper()} {mahalle.upper()}'DE KAÇIRILMAYACAK YATIRIM FIRSATI!
+
+✨ Portföy Özellikleri:
+• Konum: İzmir / {ilce} / {mahalle}
+• Genişlik: {m2} m² 
+• İmar Durumu: {imar}
+• Altyapı: Elektrik ve su hatları hazır, hemen inşaata uygun durumda!
+
+🎯 Proje Geliştirme Senaryosu:
+Arazimiz, konumu ve yasal altyapısı itibariyle özellikle "{konsept}" konsepti için kusursuz bir yapıya sahiptir. Bölgedeki emlak endeksi ve yüksek prim potansiyeli göz önüne alındığında, hem bireysel kullanım hem de yüksek kazanç odaklı kurumsal projeler için kaçırılamayacak bir fırsattır.
+
+💵 Fırsat Alım Bedeli: {fiyat_str}
+
+Detaylı bilgi, yerinde sunum ve profesyonel yatırım analiz raporu için benimle hemen iletişime geçebilirsiniz.
+
+Yatırım Danışmanı: {danisman}
+🏢 ON TÜRKİYE GAYRİMENKUL
+"""
+    return metin
+
+
 # -------------------------------------------------------------
 # STREAMLIT ARAYÜZÜ
 # -------------------------------------------------------------
-st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v3", page_icon="🏢", layout="centered")
+st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v4", page_icon="🏢", layout="centered")
 
-st.title("🏢 ON Türkiye Sunum Sihirbazı v3")
-st.write("Şablon rengini seçin, fotoğrafları ekleyin ve sunumunuzu özelleştirin!")
+st.title("🏢 ON Türkiye Sunum Sihirbazı v4")
+st.write("Bilgileri girin; hem kurumsal sunumunuzu indirin hem de ilan metninizi tek tıkla kopyalayın!")
 st.divider()
 
 col1, col2 = st.columns(2)
@@ -127,22 +154,35 @@ with col2:
 
 st.divider()
 
-# YENİ SÜPER GİRDİLER
 sablon_turu = st.selectbox("Sunum Şablonu Tasarımı (Renk Modu)", ["ON Premium (Gold & Lacivert)", "ON Nature (Doğa & Toprak)", "ON Commercial (Modern & Antrasit)"])
 konsept = st.selectbox("Önerilecek Proje Konsepti", ["Premium Taş Ev", "Eko-Tiny House Yaşam Alanı", "Yüksek Getirili Villa"])
 yuklenen_resim = st.file_uploader("Arsa / Drone Fotoğrafı Yükleyin (Opsiyonel)", type=["jpg", "jpeg", "png"])
 
 st.divider()
 
-if st.button("🚀 Profesyonel Sunum Dosyasını Hazırla", use_container_width=True):
-    with st.spinner("Yapay zeka verileri ve temayı harmanlıyor..."):
-        sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim)
-        st.success("🎉 Sunumunuz seçtiğiniz şablon renkleriyle başarıyla hazırlandı!")
-        
-        st.download_button(
-            label="📥 Özelleştirilmiş PowerPoint Dosyasını İndir",
-            data=sunum_dosyasi,
-            file_name=f"ON_Turkiye_{ilce}_{sablon_turu.split()[0]}_Raporu.pptx",
-            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            use_container_width=True
-        )
+# İKİ AYRI AKSİYON BUTONU
+btn_col1, btn_col2 = st.columns(2)
+
+with btn_col1:
+    if st.button("🚀 Profesyonel Sunum Dosyasını Hazırla", use_container_width=True):
+        with st.spinner("Sunum hazırlanıyor..."):
+            sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim)
+            st.success("🎉 Sunum başarıyla hazırlandı!")
+            st.download_button(
+                label="📥 PowerPoint Dosyasını İndir",
+                data=sunum_dosyasi,
+                file_name=f"ON_Turkiye_{ilce}_Sunumu.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                use_container_width=True
+            )
+
+with btn_col2:
+    if st.button("✍️ Hazır İlan Açıklama Metni Üret", use_container_width=True):
+        hazir_metin = ilan_metni_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, konsept, danisman)
+        st.session_state["ilan_metni"] = hazir_metin
+        st.success("📝 İlan metni aşağıda başarıyla oluşturuldu!")
+
+# Eğer ilan metni üretildiyse ekranda şık bir kutuda gösterelim
+if "ilan_metni" in st.session_state:
+    st.info("👇 Sahibinden.com veya Sosyal Medya ilanlarında kullanabileceğiniz hazır açıklama metni:")
+    st.text_area(label="Kopyalamak için içine tıklayıp Ctrl+A / Ctrl+C yapabilirsiniz:", value=st.session_state["ilan_metni"], height=300)
