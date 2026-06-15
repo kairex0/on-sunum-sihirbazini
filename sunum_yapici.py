@@ -3,10 +3,11 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from fpdf import FPDF
+import matplotlib.pyplot as plt
 import io
 
 # -------------------------------------------------------------
-# TÜRKÇE KARAKTER TEMİZLEME FONKSİYONU (PDF İÇİN KORUMA)
+# TÜRKÇE KARAKTER TEMİZLEME FONKSİYONU
 # -------------------------------------------------------------
 def turkce_temizle(metin):
     kaynak = "şŞıİğĞüÜöÖçÇ"
@@ -15,7 +16,7 @@ def turkce_temizle(metin):
     return metin.translate(tablo)
 
 # -------------------------------------------------------------
-# 1. POWERPOINT MOTORU (PPTX Türkçe karakter destekler, buraya dokunmuyoruz)
+# 1. GELİŞMİŞ POWERPOINT MOTORU (GRAFİK DESTEKLİ)
 # -------------------------------------------------------------
 def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim):
     prs = Presentation()
@@ -24,14 +25,17 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
         ANA_RENK = RGBColor(11, 29, 58)      
         VURGU_RENK = RGBColor(212, 175, 55)   
         METIN_KOYU = RGBColor(40, 45, 55)
+        GRAFIK_RENKLER = ['#0B1D3A', '#D4AF37']
     elif sablon_turu == "ON Nature (Doğa & Toprak)":
         ANA_RENK = RGBColor(34, 76, 56)       
         VURGU_RENK = RGBColor(194, 143, 83)   
         METIN_KOYU = RGBColor(50, 60, 50)
+        GRAFIK_RENKLER = ['#224C38', '#C28F53']
     else: 
         ANA_RENK = RGBColor(43, 43, 43)       
         VURGU_RENK = RGBColor(241, 90, 36)    
         METIN_KOYU = RGBColor(30, 30, 30)
+        GRAFIK_RENKLER = ['#2B2B2B', '#F15A24']
         
     BEYAZ = RGBColor(255, 255, 255)
     
@@ -75,13 +79,13 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
         image_stream = io.BytesIO(yuklenen_resim.getvalue())
         slide2.shapes.add_picture(image_stream, Inches(5.8), Inches(1.5), width=Inches(3.8))
 
-    # SLAYT 3: MALİYET MOTORU
+    # SLAYT 3: MALİYET VE GRAFİK SLAYTI
     slide3 = prs.slides.add_slide(prs.slide_layouts[6])
     t_box3 = slide3.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(9), Inches(1))
-    t_box3.text_frame.paragraphs[0].text = f"ÖNERİLEN PROJE: {konsept.upper()}"
+    t_box3.text_frame.paragraphs[0].text = "YATIRIM BÜTÇESİ VE DAĞILIMI"
     t_box3.text_frame.paragraphs[0].font.size = Pt(26); t_box3.text_frame.paragraphs[0].font.bold = True; t_box3.text_frame.paragraphs[0].font.color.rgb = ANA_RENK
     
-    tf3 = slide3.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(9), Inches(5)).text_frame
+    tf3 = slide3.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(5), Inches(5)).text_frame
     
     taban_alan = int(int(m2) * 0.15)
     toplam_insaat = taban_alan * 2
@@ -89,23 +93,31 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     toplam_maliyet = arsa_fiyati + insaat_maliyeti
     tahmini_bitis_degeri = toplam_maliyet * 1.6
     
-    if konsept == "Premium Taş Ev":
-        yorum = "💡 Bölgenin doğal dokusuna uygun taş mimari, eskidikçe değer kazanan en yüksek prim potansiyeline sahiptir."
-    elif konsept == "Eko-Tiny House Yaşam Alanı":
-        yorum = "💡 Altyapı hazır olduğu için inşaat stresi olmadan hemen yarın kurulabilir, lüks ve mobil bir kaçış noktasıdır."
-    else:
-        yorum = "💡 Bölgedeki turizm ve villa talebini nakde çevirecek, kısa/uzun dönem yüksek kira getirili yatırım senaryosudur."
-
     finansallar = [
-        yorum,
-        f"🏗️ Planlanan İnşaat Alanı: {toplam_insaat} m² (Taban: {taban_alan} m²)",
+        f"🏗️ İnşaat Alanı: {toplam_insaat} m²",
         f"💵 Arsa Bedeli: {arsa_fiyati:,.0f} TL".replace(",", "."),
-        f"🔨 Tahmini Yapım Maliyeti: {insaat_maliyeti:,.0f} TL".replace(",", "."),
-        f"📊 Toplam Yatırım Bütçesi: {toplam_maliyet:,.0f} TL".replace(",", "."),
-        f"📈 Tamamlandığında Tahmini Piyasa Değeri: {tahmini_bitis_degeri:,.0f} TL".replace(",", ".")
+        f"🔨 Yapım Maliyeti: {insaat_maliyeti:,.0f} TL".replace(",", "."),
+        f"📊 Toplam Bütçe: {toplam_maliyet:,.0f} TL".replace(",", "."),
+        f"📈 Bitiş Değeri: {tahmini_bitis_degeri:,.0f} TL".replace(",", ".")
     ]
     for f in finansallar:
-        p_f = tf3.add_paragraph(); p_f.text = f; p_f.font.size = Pt(16); p_f.font.color.rgb = METIN_KOYU; p_f.space_after = Pt(10)
+        p_f = tf3.add_paragraph(); p_f.text = f; p_f.font.size = Pt(15); p_f.font.color.rgb = METIN_KOYU; p_f.space_after = Pt(12)
+
+    # 📊 ARKA PLANDA PASTA GRAFİĞİ ÜRETMEK
+    labels = ['Arsa Bedeli', 'Insaat Maliyeti']
+    sizes = [arsa_fiyati, insaat_maliyeti]
+    
+    fig, ax = plt.subplots(figsize=(4, 4))
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=GRAFIK_RENKLER, textprops={'fontsize': 12, 'weight': 'bold'})
+    ax.axis('equal')  
+    
+    # Grafiği hafızaya kaydet ve Slayt 3'e yapıştır kanka
+    chart_stream = io.BytesIO()
+    plt.savefig(chart_stream, format='png', bbox_inches='tight', transparent=True)
+    chart_stream.seek(0)
+    plt.close()
+    
+    slide3.shapes.add_picture(chart_stream, Inches(5.5), Inches(1.5), width=Inches(4.0))
 
     binary_output = io.BytesIO()
     prs.save(binary_output)
@@ -113,13 +125,13 @@ def sablonlu_sunum_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept,
     return binary_output
 
 # -------------------------------------------------------------
-# 2. GÜVENLİ PDF ÜRETME MOTORU (Türkçe Karakter Korumalı)
+# 2. GÜVENLİ PDF ÜRETME MOTORU
 # -------------------------------------------------------------
 def pdf_rapor_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept):
     pdf = FPDF()
     pdf.add_page()
     
-    pdf.set_font("Courier", "B", 20) # Standart ve güvenli fonta çektik kanka
+    pdf.set_font("Courier", "B", 20) 
     pdf.set_text_color(11, 29, 58) 
     pdf.cell(0, 15, turkce_temizle("ON TURKIYE GAYRIMENKUL"), ln=True, align="C")
     
@@ -128,7 +140,6 @@ def pdf_rapor_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept):
     pdf.line(10, 40, 200, 40)
     pdf.ln(10)
     
-    # Detaylar
     pdf.set_font("Courier", "B", 14)
     pdf.set_text_color(241, 90, 36) 
     portfoy_baslik = f"PORTFOY: IZMIR {ilce.upper()} - {mahalle.upper()}"
@@ -175,27 +186,27 @@ def pdf_rapor_uret(ilce, mahalle, m2, imar, arsa_fiyati, danisman, konsept):
 # -------------------------------------------------------------
 def ilan_metni_uret(ilce, mahalle, m2, imar, arsa_fiyati, konsept, danisman):
     fiyat_str = f"{arsa_fiyati:,.0f} TL".replace(",", ".")
-    metin = f"""🚀 ON TÜRKİYE'DEN İZMİR {ilce.upper()} {mahalle.upper()}'DE KAÇIRILMAYACAK YATIRIM FIRSATI!\n\n✨ Portföy Özellikleri:\n• Konum: İzmir / {ilce} / {mahalle}\n• Genişlik: {m2} m²\n• İmar Durumu: {imar}\n• Altyapı: Elektrik ve su hazır!\n\n🎯 Önerilen Proje: {konsept}\n💵 Fırsat Alım Bedeli: {fiyat_str}\n\nYatırım Danışmanı: {danisman}\n🏢 ON TÜRKİYE GAYRİメンKUL"""
+    metin = f"""🚀 ON TÜRKİYE'DEN İZMİR {ilce.upper()} {mahalle.upper()}'DE KAÇIRILMAYACAK YATIRIM FIRSATI!\n\n✨ Portföy Özellikleri:\n• Konum: İzmir / {ilce} / {mahalle}\n• Genişlik: {m2} m²\n• İmar Durumu: {imar}\n• Altyapı: Elektrik ve su hazır!\n\n🎯 Önerilen Proje: {konsept}\n💵 Fırsat Alım Bedeli: {fiyat_str}\n\nYatırım Danışmanı: {danisman}\n🏢 ON TÜRKİYE GAYRİMENKUL"""
     return metin
 
 # -------------------------------------------------------------
 # STREAMLIT ARAYÜZÜ
 # -------------------------------------------------------------
-st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v5", page_icon="🏢", layout="centered")
+st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v6", page_icon="🏢", layout="centered")
 
-st.title("🏢 ON Türkiye Sunum Sihirbazı v5")
-st.write("Bilgileri girin; sunum indirin, PDF raporu basın ve ilan metni üretin!")
+st.title("🏢 ON Türkiye Sunum Sihirbazı v6")
+st.write("Bilgileri girin; grafik destekli kurumsal sunum, PDF ve ilan metnini anında üretin!")
 st.divider()
 
 col1, col2 = st.columns(2)
 with col1:
-    ilce = st.text_input("İlçe Name", value="Urla")
+    ilce = st.text_input("İlçe Adı", value="Urla")
     m2 = st.number_input("Metrekare (m²)", min_value=1, value=500)
     danisman = st.text_input("Danışman Adı Soyadı", value="Fatih Türkdönmez")
 with col2:
     mahalle = st.text_input("Mahalle / Köy", value="Kuşçular")
     imar = st.text_input("İmar Durumu", value="%15/30 Konut İmarlı")
-    arsa_fiyati = st.number_input("Arsa Fiyatı (TL)", min_value=0, value=6500000, step=50000)
+    arsafiyati = st.number_input("Arsa Fiyatı (TL)", min_value=0, value=6500000, step=50000)
 
 st.divider()
 sablon_turu = st.selectbox("Sunum Şablonu Tasarımı (Renk Modu)", ["ON Premium (Gold & Lacivert)", "ON Nature (Doğa & Toprak)", "ON Commercial (Modern & Antrasit)"])
@@ -207,17 +218,17 @@ btn_col1, btn_col2, btn_col3 = st.columns(3)
 
 with btn_col1:
     if st.button("🚀 PPTX Sunumu Üret", use_container_width=True):
-        sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, danisman, konsept, sablon_turu, yuklenen_resim)
+        sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept, sablon_turu, yuklenen_resim)
         st.download_button(label="📥 PowerPoint İndir", data=sunum_dosyasi, file_name=f"ON_{ilce}_Sunum.pptx", mime="application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
 
 with btn_col2:
     if st.button("📄 Yatırım PDF Raporu Bas", use_container_width=True):
-        pdf_dosyasi = pdf_rapor_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, danisman, konsept)
+        pdf_dosyasi = pdf_rapor_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept)
         st.download_button(label="📥 PDF Raporunu İndir", data=pdf_dosyasi, file_name=f"ON_{ilce}_Yatirim_Raporu.pdf", mime="application/pdf", use_container_width=True)
 
 with btn_col3:
     if st.button("✍️ İlan Metni Üret", use_container_width=True):
-        st.session_state["ilan_metni"] = ilan_metni_uret(ilce, mahalle, str(m2), imar, arsa_fiyati, konsept, danisman)
+        st.session_state["ilan_metni"] = ilan_metni_uret(ilce, mahalle, str(m2), imar, arsafiyati, konsept, danisman)
 
 if "ilan_metni" in st.session_state:
     st.text_area(label="Hazır İlan Açıklaması:", value=st.session_state["ilan_metni"], height=200)
