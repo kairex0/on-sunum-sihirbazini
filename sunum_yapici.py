@@ -11,7 +11,7 @@ import io
 # -------------------------------------------------------------
 def turkce_temizle(metin):
     kaynak = "şŞıİğĞüÜöÖçÇ "
-    hedef  = "sSiiGGuuooCC_" # Boşlukları da alt tire yapıyoruz ki dosya adında şık dursun
+    hedef  = "sSiiGGuuooCC_"
     tablo = str.maketrans(kaynak, hedef)
     return metin.translate(tablo)
 
@@ -188,53 +188,81 @@ def ilan_metni_uret(ilce, mahalle, m2, imar, arsa_fiyati, konsept, danisman):
     return metin
 
 # -------------------------------------------------------------
-# STREAMLIT ARAYÜZÜ
+# STREAMLIT UI/UX MAKYAJI VE KONTROLLER
 # -------------------------------------------------------------
-st.set_page_config(page_title="ON Türkiye Sunum Sihirbazı v6", page_icon="🏢", layout="centered")
+st.set_page_config(page_title="ON Türkiye Pro Hub", page_icon="🏢", layout="wide") # Geniş ekran moduna geçtik kanka
 
-st.title("🏢 ON Türkiye Sunum Sihirbazı v6")
-st.write("Bilgileri girin; dinamik dosya ismiyle raporlarınızı indirin!")
+# 🛠️ SIDEBAR (YAN MENÜ) TASARIMI
+st.sidebar.image("https://img.icons8.com/color/96/real-estate.png", width=80)
+st.sidebar.title("⚙️ Sistem Ayarları")
+danisman = st.sidebar.text_input("Danışman Adı Soyadı", value="Fatih Türkdönmez")
+sablon_turu = st.sidebar.selectbox("Tasarım Renk Modu", ["ON Premium (Gold & Lacivert)", "ON Nature (Doğa & Toprak)", "ON Commercial (Modern & Antrasit)"])
+konsept = st.sidebar.selectbox("Önerilecek Proje Konsepti", ["Premium Taş Ev", "Eko-Tiny House Yaşam Alanı", "Yüksek Getirili Villa"])
+yuklenen_resim = st.sidebar.file_uploader("Arsa Fotoğrafı Yükleyin (Opsiyonel)", type=["jpg", "jpeg", "png"])
+
+# MAIN PANEL (ANA EKRAN)
+st.title("🏢 ON Türkiye Yatırım & Proje Sihirbazı Pro")
+st.write("Arazi bilgilerini girerek dakikalar içinde kurumsal analiz çıktılarınızı hazırlayın.")
 st.divider()
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     ilce = st.text_input("İlçe Adı", value="Urla")
-    m2 = st.number_input("Metrekare (m²)", min_value=1, value=500)
-    danisman = st.text_input("Danışman Adı Soyadı", value="Fatih Türkdönmez")
 with col2:
     mahalle = st.text_input("Mahalle / Köy", value="Kuşçular")
+with col3:
     imar = st.text_input("İmar Durumu", value="%15/30 Konut İmarlı")
+
+col4, col5 = st.columns(2)
+with col4:
+    m2 = st.number_input("Metrekare (m²)", min_value=0, value=500)
+with col5:
     arsafiyati = st.number_input("Arsa Fiyatı (TL)", min_value=0, value=6500000, step=50000)
 
 st.divider()
-sablon_turu = st.selectbox("Sunum Şablonu Tasarımı (Renk Modu)", ["ON Premium (Gold & Lacivert)", "ON Nature (Doğa & Toprak)", "ON Commercial (Modern & Antrasit)"])
-konsept = st.selectbox("Önerilecek Proje Konsepti", ["Premium Taş Ev", "Eko-Tiny House Yaşam Alanı", "Yüksek Getirili Villa"])
-yuklenen_resim = st.file_uploader("Arsa / Drone Fotoğrafı Yükleyin (Opsiyonel)", type=["jpg", "jpeg", "png"])
-st.divider()
 
-# 🏷️ DİNAMİK DOSYA İSMİ GENERATORU
-temiz_ilce = turkce_temizle(ilce.lower())
-temiz_mahalle = turkce_temizle(mahalle.lower())
-temiz_konsept = turkce_temizle(konsept.lower())
-
-pptx_dosya_adi = f"ON_{temiz_ilce}_{temiz_mahalle}_{temiz_konsept}_sunumu.pptx"
-pdf_dosya_adi = f"ON_{temiz_ilce}_{temiz_mahalle}_{temiz_konsept}_analiz_raporu.pdf"
-
-btn_col1, btn_col2, btn_col3 = st.columns(3)
-
-with btn_col1:
-    if st.button("🚀 PPTX Sunumu Üret", use_container_width=True):
-        sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept, sablon_turu, yuklenen_resim)
-        st.download_button(label="📥 PowerPoint İndir", data=sunum_dosyasi, file_name=pptx_dosya_adi, mime="application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
-
-with btn_col2:
-    if st.button("📄 Yatırım PDF Raporu Bas", use_container_width=True):
-        pdf_dosyasi = pdf_rapor_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept)
-        st.download_button(label="📥 PDF Raporunu İndir", data=pdf_dosyasi, file_name=pdf_dosya_adi, mime="application/pdf", use_container_width=True)
-
-with btn_col3:
-    if st.button("✍️ İlan Metni Üret", use_container_width=True):
-        st.session_state["ilan_metni"] = ilan_metni_uret(ilce, mahalle, str(m2), imar, arsafiyati, konsept, danisman)
-
-if "ilan_metni" in st.session_state:
-    st.text_area(label="Hazır İlan Açıklaması:", value=st.session_state["ilan_metni"], height=200)
+# 🛡️ AKILLI GİRDİ KONTROL MOTORU (Hata Önleyici)
+if m2 <= 0 or arsafiyati <= 0 or not ilce or not mahalle:
+    st.warning("⚠️ Lütfen analiz yapabilmek için İlçe, Mahalle, Metrekare ve Arsa Fiyatı alanlarını eksiksiz doldurun bro.")
+else:
+    # 📊 CANLI FİNANSAL METRİK PANALİ (Makyaj Kısmı)
+    taban_alan = int(m2 * 0.15)
+    toplam_insaat = taban_alan * 2
+    insaat_maliyeti = toplam_insaat * 30000
+    toplam_maliyet = arsafiyati + insaat_maliyeti
+    tahmini_bitis_degeri = toplam_maliyet * 1.6
+    
+    m_col1, m_col2, m_col3 = st.columns(3)
+    m_col1.metric("Arsa Alım Bedeli", f"{arsafiyati:,.0f} TL".replace(",", "."))
+    m_col2.metric("Tahmini İnşaat Maliyeti", f"{insaat_maliyeti:,.0f} TL".replace(",", "."))
+    m_col3.metric("Toplam Proje Bütçesi", f"{toplam_maliyet:,.0f} TL".replace(",", "."))
+    
+    st.divider()
+    
+    # 🏷️ DİNAMİK DOSYA İSMİ GENERATORU
+    temiz_ilce = turkce_temizle(ilce.lower())
+    temiz_mahalle = turkce_temizle(mahalle.lower())
+    temiz_konsept = turkce_temizle(konsept.lower())
+    
+    pptx_dosya_adi = f"ON_{temiz_ilce}_{temiz_mahalle}_{temiz_konsept}_sunumu.pptx"
+    pdf_dosya_adi = f"ON_{temiz_ilce}_{temiz_mahalle}_{temiz_konsept}_analiz_raporu.pdf"
+    
+    # EYLEM BUTONLARI
+    btn_col1, btn_col2, btn_col3 = st.columns(3)
+    
+    with btn_col1:
+        if st.button("🚀 PPTX Sunumu Üret", use_container_width=True):
+            sunum_dosyasi = sablonlu_sunum_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept, sablon_turu, yuklenen_resim)
+            st.download_button(label="📥 PowerPoint İndir", data=sunum_dosyasi, file_name=pptx_dosya_adi, mime="application/vnd.openxmlformats-officedocument.presentationml.presentation", use_container_width=True)
+            
+    with btn_col2:
+        if st.button("📄 Yatırım PDF Raporu Bas", use_container_width=True):
+            pdf_dosyasi = pdf_rapor_uret(ilce, mahalle, str(m2), imar, arsafiyati, danisman, konsept)
+            st.download_button(label="📥 PDF Raporunu İndir", data=pdf_dosyasi, file_name=pdf_dosya_adi, mime="application/pdf", use_container_width=True)
+            
+    with btn_col3:
+        if st.button("✍️ İlan Metni Üret", use_container_width=True):
+            st.session_state["ilan_metni"] = ilan_metni_uret(ilce, mahalle, str(m2), imar, arsafiyati, konsept, danisman)
+            
+    if "ilan_metni" in st.session_state:
+        st.text_area(label="Hazır İlan Açıklaması:", value=st.session_state["ilan_metni"], height=200)
